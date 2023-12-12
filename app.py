@@ -1,9 +1,10 @@
 import gradio as gr
+import os
 
 def greet(name):
     return "Hello " + name + "!"
 
 demo = gr.Interface(fn=greet, inputs="text", outputs="text")
-    
+
 if __name__ == "__main__":
-    demo.launch(show_api=False)   
+    demo.launch(show_api=False, server_name="0.0.0.0")
