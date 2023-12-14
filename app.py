@@ -6,9 +6,9 @@ import ast
 import os
 os.environ['MPLCONFIGDIR'] = "/tmp/"
 # 環境変数からパスワードを取得
-OPEANAI_API = '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'
-PASSWORD_GET = 'get0107'
-PASSWORD_SET = 'set20230107'
+OPEANAI_API = os.getenv('OPEANAI_API')
+PASSWORD_GET = os.getenv('PASSWORD_GET')
+PASSWORD_SET = os.getenv('PASSWORD_SET')
 
 
 get_window_url_params = """
@@ -167,7 +167,6 @@ with gr.Blocks() as demo:
     **True:** 受付完了
     **False:** 未受付
     """)
-    gr.Label(value='aaa'+os.getenv('PASSWORD'))
     password =gr.Textbox(label = 'password for 管理者',value='password',type='password')
     btnSubmit = gr.Button("受付表を確認する [管理用]")
     fileCsv = gr.File(label="input file")
