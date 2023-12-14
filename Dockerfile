@@ -7,14 +7,14 @@ RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 ENV MPLCONFIGDIR /app/matplotlib_cache
 
-# # 新しいユーザーを作成
-# RUN adduser --disabled-password --gecos '' myuser
+# 新しいユーザーを作成
+RUN adduser --disabled-password --gecos '' myuser
 
-# # flagged ディレクトリを作成し、新しいユーザーに所有権を与える
-# RUN mkdir /app/flagged && chown -R myuser:myuser /app/flagged
+# /app ディレクトリに新しいユーザーに所有権を与える
+RUN chown -R myuser:myuser /app
 
 # アプリケーションを実行するユーザーを切り替える
-# # USER myuser
-# EXPOSE 7860
+USER myuser
+EXPOSE 7860
 
 CMD ["python", "app.py"]
