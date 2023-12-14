@@ -184,11 +184,15 @@ with gr.Blocks() as demo:
 
     btnSubmit.click(lambda str: g_dfGuest.dfGuest if str == PASSWORD_GET else None, inputs=password, outputs=dfGuest)
     def export_csv(x, password):
-        if password == PASSWORD_GET:
-            filename = "guest_data.csv"
-            x.to_csv(filename)
-            return filename
-        else:
+        try:
+            if password == PASSWORD_GET:
+                filename = "guest_data.csv"
+                x.to_csv(filename)
+                return filename
+            else:
+                return None
+        except Exception as e:
+            gr.Info(e.message)
             return None
     
     dfGuest.change(export_csv, [dfGuest, password], fileCsv)
