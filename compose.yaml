@@ -4,6 +4,8 @@ services:
   gradio:
     container_name: "gradio"
     build: .
+    volumes:
+      - ./cache:/cache
     ports:
       - 7860:7860
     env_file:

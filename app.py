@@ -43,6 +43,11 @@ class GuestManager:
             return self.dfGuest[self.dfGuest['名前'] == name]['名前'].values[0], self.dfGuest[self.dfGuest['名前'] == name]['席番号'].values[0]
         else:
             return "名前が見つかりませんでした",0
+    def get_guests_with_same_table(self, table):
+        if table in self.dfGuest['席番号'].values:
+            return self.dfGuest[self.dfGuest['席番号'] == table]['名前'].values
+        else:
+            return []
     def executeGptCommon(self,apikey, model, maxtokens, temperature, systemPrompt,userPrompt=None, assistantMessage=None):
         try:
             if not apikey: 
@@ -159,13 +164,17 @@ with gr.Blocks() as demo:
         with gr.Column():
             with gr.Row():
                 with gr.Column():
-                    tbNameComfirm= gr.Textbox(label="お名前はこちらですか？(敬称略)")
+                    with gr.Group():
+                        with gr.Row():
+                            tbNameComfirm= gr.Textbox(label="お名前はこちらですか？",interactive=False,scale=5)
+                            gr.Label(value='\n様',show_label=False,scale=1)
                 with gr.Column():
                     btnRefresh = gr.Button(value='🔁')
                     radioIsCorrectName = gr.Radio(label="この名前であっていますか？",choices=['あっています','ちがいます(入力した名前で受付する)'],value='あっています')
     btnCheckin = gr.Button(value='受付する')
     tbMessage= gr.Textbox(label="メッセージ",value="まだ受付は完了していません")
     numTable = gr.Number(label="あなたの席番号",value=0)
+    tbSameTableGuests = gr.Textbox(label="同じ席番号のゲスト",value="")
 
     with gr.Accordion():
         gr.Markdown(value="""
@@ -196,35 +205,26 @@ with gr.Blocks() as demo:
             return None
     
     dfGuest.change(export_csv, [dfGuest, password], fileCsv)
-    # name.change(g_dfGuest.trigger_get_closest_name,[name,tbNameComfirm,numTable],[tbNameComfirm,numTable])
     name.blur(g_dfGuest.confirm_exact_name,[name,jsonWelcome],[tbNameComfirm,numTable])
-    # btnRefresh.click(g_dfGuest.handle_name_input,tbNameComfirm)
     btnRefresh.click(g_dfGuest.confirm_similar_but_not_exact_name,[name,tbNameComfirm,jsonWelcome],[tbNameComfirm,numTable])
     
-    def check_in_and_respond(confirmed_name, inputed_name, isCorrect,welcome):
+    def check_in_and_respond(confirmed_name, inputed_name, isCorrect,welcome,table):
         LOCATION = os.getenv('LOCATION')
         if welcome['location'] != LOCATION:
             return 'URLが無効です、QRコードをもう一度読み取ってください'
         if isCorrect == 'あっています' and confirmed_name != '名前が見つかりませんでした':
             g_dfGuest.check_in(confirmed_name)
-            return f'[自動応答]ようこそ、{confirmed_name}さま。受付が完了しました'
+            same_table_guests = g_dfGuest.get_guests_with_same_table(table)
+            return f'[自動応答]ようこそ、{confirmed_name}様。受付が完了しました',', '.join([guest + ' 様' for guest in same_table_guests])
         else:
             g_dfGuest.check_in(inputed_name)
-        return f'[自動応答]ようこそ、{inputed_name}さま。受付が完了しました'
+            # same_table_guests = g_dfGuest.get_guests_with_same_table(table)
+            return f'[自動応答]ようこそ、{inputed_name}様。受付が完了しました','式場キャストにお尋ねください'
 
-    btnCheckin.click(check_in_and_respond, [tbNameComfirm, name, radioIsCorrectName,jsonWelcome], tbMessage)
+    btnCheckin.click(check_in_and_respond, [tbNameComfirm, name, radioIsCorrectName,jsonWelcome,numTable], [tbMessage,tbSameTableGuests])
     fileCsv.upload(lambda filepath,password: g_dfGuest.set(filepath) if password ==PASSWORD_SET else True,[fileCsv,password], [])
     btnurl.click(lambda x:x,jsonaa,jsonaa,js=get_window_url_params)
             
-    # def load_function(welcome):
-    #     global OPEANAI_API
-    #     if welcome['location'] == os.getenv('LOCATION'):
-    #         OPEANAI_API = os.getenv('OPEANAI_API')
-    #     else:
-    #         OPEANAI_API = ''
-    #     return welcome
     demo.load(lambda x:x, jsonWelcome, jsonWelcome, js=get_window_url_params)
-    # inputとoutputを一緒にしたらなんかできた。
-    # fileCsv.upload(lambda filepath: g_dfGuest.set(filepath),[fileCsv], [])
 if __name__ == "__main__":
     demo.launch(show_api=False, server_name="0.0.0.0")
