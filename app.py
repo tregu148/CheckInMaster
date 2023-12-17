@@ -21,15 +21,15 @@ get_window_url_params = """
     """
 class GuestManager:
     def __init__(self):
-        self.dfGuest = pd.DataFrame({'名前':['織田信長'],'席番号':[1],'受付':[False]})
+        self.dfGuest = pd.DataFrame({'名前':['織田信長'],'席番号':['A'],'受付':['No']})
         # それっぽい名前のリスト
         names = ['佐藤次郎', '鈴木花子', '高橋一郎', '田中美咲', '渡辺健太', '伊藤純一', '山本花子', '中村一郎', '小林美咲', '加藤健太']
         for i in range(10):
             # ダミーデータ
             dummy_data = {
                 '名前': names[i],
-                '席番号': np.random.randint(1, 6),
-                '受付': False
+                '席番号': chr(65 + np.random.randint(0, 9)),
+                '受付': 'No'
             }
             # ダミーデータのデータフレームを作成
             df_dummy = pd.DataFrame(dummy_data, index=[i+1])
@@ -42,7 +42,7 @@ class GuestManager:
         if name in self.dfGuest['名前'].values:
             return self.dfGuest[self.dfGuest['名前'] == name]['名前'].values[0], self.dfGuest[self.dfGuest['名前'] == name]['席番号'].values[0]
         else:
-            return "名前が見つかりませんでした",0
+            return "名前が見つかりませんでした",'-'
     def get_guests_with_same_table(self, table):
         if table in self.dfGuest['席番号'].values:
             return self.dfGuest[self.dfGuest['席番号'] == table]['名前'].values
@@ -81,7 +81,11 @@ class GuestManager:
         if confirmed_name:
             name = f"{confirmed_name}を避けて、{name}に似ている"
         name_confirmation = self.get_closest_name(name)
-        dict = ast.literal_eval(name_confirmation)
+        try:
+            dict = ast.literal_eval(name_confirmation)
+        except ValueError:
+            gr.Info('name_confirmationが辞書形式ではありません')
+            raise
         return self.check_guest(dict['theClosestName'])
     def confirm_exact_name(self,name,welcome):
         return self.check_location_and_get_closest_name(name, welcome)
@@ -91,9 +95,9 @@ class GuestManager:
         return [name_in_df,table]
     def check_in(self,name):
         if name in self.dfGuest['名前'].values:
-            self.dfGuest.loc[self.dfGuest['名前'] == name, '受付'] = True
+            self.dfGuest.loc[self.dfGuest['名前'] == name, '受付'] = 'Yes'
         else:
-            new_data = {'名前': name, '席番号': 0, '受付': True}
+            new_data = {'名前': name, '席番号': "-", '受付': 'Yes'}
             df_new = pd.DataFrame(new_data, index=[len(self.dfGuest)+1])
             self.dfGuest = self.dfGuest._append(df_new)
     def handle_name_input(self,oldName):
@@ -151,6 +155,11 @@ assistant:{{'theClosestName':'None'}}
 g_dfGuest = GuestManager()
 
 with gr.Blocks() as demo:
+    gr.Markdown(value="""
+    # AI搭載受付システム
+    - (親族兄弟も)一人ずつ受付ボタンを押してください
+    - 他人のスマホからの受付も可能です
+    """)
     with gr.Row():
         # gr.Markdown(value="""
         # # 受付
@@ -160,7 +169,7 @@ with gr.Blocks() as demo:
         jsonWelcome = gr.JSON(label='welcome')
     with gr.Row():
         with gr.Column():
-            name = gr.Textbox(label="お名前",placeholder='こちらに入力してください')
+            name = gr.Textbox(label="フルネーム",placeholder='こちらに入力してください。その後、右欄のお名前を確認し、[受付する]ボタンを押してください')
         with gr.Column():
             with gr.Row():
                 with gr.Column():
@@ -173,16 +182,16 @@ with gr.Blocks() as demo:
                     radioIsCorrectName = gr.Radio(label="この名前であっていますか？",choices=['あっています','ちがいます(入力した名前で受付する)'],value='あっています')
     btnCheckin = gr.Button(value='受付する')
     tbMessage= gr.Textbox(label="メッセージ",value="まだ受付は完了していません")
-    numTable = gr.Number(label="あなたの席番号",value=0)
-    tbSameTableGuests = gr.Textbox(label="同じ席番号のゲスト",value="")
+    numTable = gr.Textbox(label="あなたの席番号",placeholder='席番号がこちらに表示されます')
+    tbSameTableGuests = gr.Textbox(label="同じ席番号のゲスト",placeholder='同じ席のゲストがこちらに表示されます。')
 
     with gr.Accordion():
         gr.Markdown(value="""
         ---
         ## 管理者用
         ### 受付
-        **True:** 受付完了
-        **False:** 未受付
+        **Yes:** 受付完了
+        **No:** 未受付
         """)
         password =gr.Textbox(label = 'password for 管理者',value='password',type='password')
         btnSubmit = gr.Button("受付表を確認する [管理用]")
@@ -215,11 +224,11 @@ with gr.Blocks() as demo:
         if isCorrect == 'あっています' and confirmed_name != '名前が見つかりませんでした':
             g_dfGuest.check_in(confirmed_name)
             same_table_guests = g_dfGuest.get_guests_with_same_table(table)
-            return f'[自動応答]ようこそ、{confirmed_name}様。受付が完了しました',', '.join([guest + ' 様' for guest in same_table_guests])
+            return f'[自動応答]ようこそ、{confirmed_name}様。受付が完了しました。開場までお待ち下さい',', '.join([guest + ' 様' for guest in same_table_guests])
         else:
             g_dfGuest.check_in(inputed_name)
             # same_table_guests = g_dfGuest.get_guests_with_same_table(table)
-            return f'[自動応答]ようこそ、{inputed_name}様。受付が完了しました','式場キャストにお尋ねください'
+            return f'[自動応答]ようこそ、{inputed_name}様。受付が完了しました。開場までお待ち下さい','式場キャストにお尋ねください'
 
     btnCheckin.click(check_in_and_respond, [tbNameComfirm, name, radioIsCorrectName,jsonWelcome,numTable], [tbMessage,tbSameTableGuests])
     fileCsv.upload(lambda filepath,password: g_dfGuest.set(filepath) if password ==PASSWORD_SET else True,[fileCsv,password], [])
