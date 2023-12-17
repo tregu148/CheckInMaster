@@ -156,7 +156,7 @@ g_dfGuest = GuestManager()
 
 with gr.Blocks() as demo:
     gr.Markdown(value="""
-    # AI搭載受付システム
+    # 新郎製AI搭載受付システム
     - (親族兄弟も)一人ずつ受付ボタンを押してください
     - 他人のスマホからの受付も可能です
     """)
@@ -181,9 +181,9 @@ with gr.Blocks() as demo:
                     btnRefresh = gr.Button(value='🔁')
                     radioIsCorrectName = gr.Radio(label="この名前であっていますか？",choices=['あっています','ちがいます(入力した名前で受付する)'],value='あっています')
     btnCheckin = gr.Button(value='受付する')
-    tbMessage= gr.Textbox(label="メッセージ",value="まだ受付は完了していません")
-    numTable = gr.Textbox(label="あなたの席番号",placeholder='席番号がこちらに表示されます')
-    tbSameTableGuests = gr.Textbox(label="同じ席番号のゲスト",placeholder='同じ席のゲストがこちらに表示されます。')
+    tbMessage= gr.Textbox(label="メッセージ",value="まだ受付は完了していません",interactive=False)
+    numTable = gr.Textbox(label="あなたの席番号",placeholder='席番号がこちらに表示されます',interactive=False)
+    tbSameTableGuests = gr.Textbox(label="同じ席番号のゲスト",placeholder='同じ席のゲストがこちらに表示されます。',interactive=False)
 
     with gr.Accordion():
         gr.Markdown(value="""
